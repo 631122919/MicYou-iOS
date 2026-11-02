@@ -10,22 +10,12 @@ struct ControlBar: View {
     @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
-        if #available(iOS 26, *) {
-            // Floating Liquid Glass controls, no bar background
-            GlassEffectContainer(spacing: 12) {
-                buttons
-            }
+        buttons
             .padding(.horizontal, 20)
             .frame(maxWidth: HomeLayout.maxWidth)
-            .padding(.bottom, 8)
-        } else {
-            buttons
-                .padding(.horizontal, 20)
-                .frame(maxWidth: HomeLayout.maxWidth)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity)
-                .background(.bar)
-        }
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(.bar)
     }
 
     private var buttons: some View {
