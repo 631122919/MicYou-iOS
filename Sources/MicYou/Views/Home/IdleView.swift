@@ -178,7 +178,7 @@ private struct TargetCard: View {
                 Image(systemName: symbol)
                     .font(.title3)
                     .frame(width: 44, height: 44)
-                    .background(.fill.tertiary, in: .rect(cornerRadius: 12))
+                    .background(.fillTertiary, in: .rect(cornerRadius: 12))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L10n.Home.targetLabel)
                         .font(.caption)
