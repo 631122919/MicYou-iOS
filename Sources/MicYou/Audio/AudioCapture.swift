@@ -89,7 +89,22 @@ final class AudioCapture: @unchecked Sendable {
     }
 
     static func requestPermission() async -> Bool {
-        await AVAudioApplication.requestRecordPermission()
+        if #available(iOS 17, *) {
+            return await AVAudioApplication.requestRecordPermission()
+        }
+        return await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                continuation.resume(returning: granted)
+            }
+        }
+    }
+
+    /// Whether the user allowed the microphone, AVAudioApplication only exists from iOS 17
+    private static var hasRecordPermission: Bool {
+        if #available(iOS 17, *) {
+            return AVAudioApplication.shared.recordPermission == .granted
+        }
+        return AVAudioSession.sharedInstance().recordPermission == .granted
     }
 
     /// Resumes once the engine runs, calls are applied in order with stop
@@ -146,6 +161,8 @@ final class AudioCapture: @unchecked Sendable {
     /// switch, so other inputs stay unmuted and the app's mute alone silences the stream
     /// The system zeroes the samples while muted, the stream is silent then anyway
     private func syncSystemMute() {
+        // The system input mute is iOS 17
+        guard #available(iOS 17, *) else { return }
         let muted = appMuted && Self.recordsFromBluetooth
         guard AVAudioApplication.shared.isInputMuted != muted else { return }
         do {
@@ -202,7 +219,7 @@ final class AudioCapture: @unchecked Sendable {
 
     private func startOnQueue(_ config: CaptureConfig, handler: @escaping Handler, onEvent: @escaping EventHandler) throws {
         stopOnQueue()
-        guard AVAudioApplication.shared.recordPermission == .granted else { throw CaptureError.permissionDenied }
+        guard Self.hasRecordPermission else { throw CaptureError.permissionDenied }
         self.config = config
         self.onEvent = onEvent
         lock.withLock { self.handler = handler }
@@ -229,7 +246,9 @@ final class AudioCapture: @unchecked Sendable {
         if config != nil {
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             // The mute is stored for the next session otherwise
-            if AVAudioApplication.shared.isInputMuted { try? AVAudioApplication.shared.setInputMuted(false) }
+            if #available(iOS 17, *), AVAudioApplication.shared.isInputMuted {
+                try? AVAudioApplication.shared.setInputMuted(false)
+            }
         }
         isRunning = false
         isInterrupted = false
@@ -252,7 +271,7 @@ final class AudioCapture: @unchecked Sendable {
         applyInput(config, session: session)
     }
 
-    private static let baseCategoryOptions: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP, .mixWithOthers]
+    private static let baseCategoryOptions: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetooth, .mixWithOthers]
 
     /// High quality Bluetooth only works in the default mode, voice processing keeps the call quality link
     /// With HFP allowed as well, routes that cannot record in high quality fall back to it
@@ -453,11 +472,13 @@ final class AudioCapture: @unchecked Sendable {
         observers.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: session, queue: notificationQueue) { [weak self] _ in
             self?.scheduleRestart(force: true)
         })
-        observers.append(center.addObserver(forName: AVAudioApplication.inputMuteStateChangeNotification, object: nil, queue: notificationQueue) { [weak self] note in
-            // Off Bluetooth the only changes are ours, unmuting the system while the app stays muted
-            guard let muted = note.userInfo?[AVAudioApplication.muteStateKey] as? Bool, Self.recordsFromBluetooth else { return }
-            self?.onEvent?(.systemMute(muted))
-        })
+        if #available(iOS 17, *) {
+            observers.append(center.addObserver(forName: AVAudioApplication.inputMuteStateChangeNotification, object: nil, queue: notificationQueue) { [weak self] note in
+                // Off Bluetooth the only changes are ours, unmuting the system while the app stays muted
+                guard let muted = note.userInfo?[AVAudioApplication.muteStateKey] as? Bool, Self.recordsFromBluetooth else { return }
+                self?.onEvent?(.systemMute(muted))
+            })
+        }
         // Putting AirPods on or taking them off decides whether the system mute follows the app's
         observers.append(center.addObserver(forName: AVAudioSession.routeChangeNotification, object: session, queue: notificationQueue) { [weak self] _ in
             self?.syncSystemMute()
