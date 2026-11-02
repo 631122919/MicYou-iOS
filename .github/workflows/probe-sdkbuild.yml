@@ -1,0 +1,29 @@
+name: probe-sdkbuild
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-xtool
+        with:
+          min-sdk-major: "18"
+      - name: SDK build
+        run: |
+          set -x
+          xtool sdk build --help
+          xtool sdk install --help
+          XCODE=/Applications/Xcode_16.2.0.app
+          xtool sdk build "$XCODE" 2>&1 | tail -40
+          ls -la .xtool 2>/dev/null || true
+          find / -name '*.xtoolsdk' -maxdepth 6 2>/dev/null | head
+          xtool sdk status
+      - name: Build app
+        run: |
+          set -x
+          xtool dev build -c release --ipa 2>&1 | tail -60
+          ls -la xtool 2>/dev/null || true
