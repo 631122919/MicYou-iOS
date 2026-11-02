@@ -158,7 +158,6 @@ final class AudioCapture: @unchecked Sendable {
     /// Headsets that have a stem or button to mute with, high quality AirPods recording included
     private static var recordsFromBluetooth: Bool {
         guard let port = AVAudioSession.sharedInstance().currentRoute.inputs.first else { return false }
-        if #available(iOS 26, *), port.bluetoothMicrophoneExtension != nil { return true }
         return [.bluetoothHFP, .bluetoothLE, .bluetoothA2DP].contains(port.portType)
     }
 
@@ -258,11 +257,7 @@ final class AudioCapture: @unchecked Sendable {
     /// High quality Bluetooth only works in the default mode, voice processing keeps the call quality link
     /// With HFP allowed as well, routes that cannot record in high quality fall back to it
     private static func categoryOptions(_ config: CaptureConfig) -> AVAudioSession.CategoryOptions {
-        var options = baseCategoryOptions
-        if #available(iOS 26, *), config.highQualityBluetooth, !config.voiceProcessing {
-            options.insert(.bluetoothHighQualityRecording)
-        }
-        return options
+        baseCategoryOptions
     }
 
     /// Routes the chosen microphone, falling back to the system choice when it is not connected
@@ -356,9 +351,6 @@ final class AudioCapture: @unchecked Sendable {
         // The port type rather than the port name, Bluetooth names often carry the owner's name
         let route = AVAudioSession.sharedInstance().currentRoute.inputs.first
         var port = route?.portType.rawValue ?? "none"
-        if #available(iOS 26, *), route?.bluetoothMicrophoneExtension?.highQualityRecording.isEnabled == true {
-            port += " in high quality"
-        }
         log.info("Capture started: \(port, privacy: .public) at \(Int(inputFormat.sampleRate)) Hz x\(inputFormat.channelCount), sending \(Int(config.sampleRate)) Hz x\(config.channels)")
     }
 
