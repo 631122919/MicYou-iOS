@@ -1,9 +1,8 @@
 name: iOS 16 IPA
 
 # Builds an unsigned IPA with an iOS 16 deployment target, for a device that cannot run the
-# upstream release (iOS 17 and later). Runs on a macOS runner, no Mac needed locally.
-# A successful build is published as a release asset, so the IPA can be downloaded from a
-# browser without anyone watching the run
+# upstream release (iOS 17 and later). macos-14 is the only image that gets a runner on the
+# free plan here, it ships Xcode 15.4 with the iOS 17.5 SDK, so nothing newer may be used
 on:
   workflow_dispatch:
 
@@ -16,12 +15,14 @@ concurrency:
 
 jobs:
   ipa:
-    runs-on: macos-latest
+    runs-on: macos-14
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup-xtool
+        with:
+          min-sdk-major: "17"
 
       - name: Build IPA
         run: Tools/build-ipa.sh
