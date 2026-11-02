@@ -42,7 +42,7 @@ struct ControlBar: View {
                 .foregroundStyle(model.isMuted ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                 .frame(width: 56, height: 56)
                 // One surface for both states, so the orange tint fades in instead of the button being replaced
-                .glassSurface(in: .circle, tint: model.isMuted ? .orange : nil, fallback: .fill.secondary)
+                .glassSurface(in: .circle, tint: model.isMuted ? .orange : nil, fallback: .fillSecondary)
                 .contentShape(.circle)
         }
         .buttonStyle(.surface)
@@ -93,7 +93,7 @@ private struct TalkButton: View {
             .symbolReplace()
             .foregroundStyle(isTalking ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
             .frame(maxWidth: .infinity, minHeight: 56)
-            .glassSurface(in: .capsule, tint: isTalking ? .green : nil, fallback: .fill.secondary)
+            .glassSurface(in: .capsule, tint: isTalking ? .green : nil, fallback: .fillSecondary)
             .contentShape(.capsule)
             .gesture(
                 // onEnded is skipped for a cancelled touch, which would leave the microphone open
