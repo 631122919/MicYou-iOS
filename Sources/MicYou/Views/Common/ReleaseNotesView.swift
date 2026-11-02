@@ -4,10 +4,6 @@ import MicYouCore
 import MicYouShared
 import os
 import SwiftUI
-// TranslationSession is not Sendable, yet SwiftUI hands it to a task on the main actor
-@preconcurrency import Translation
-// The cross-import overlay is not applied automatically when building on Linux
-import _Translation_SwiftUI
 
 /// The changes in a new release, with a button to its page where the IPA files are
 /// The notes are written in English, the system translator turns them into the app's language in place
@@ -16,19 +12,7 @@ struct ReleaseNotesView: View {
     let notes: ReleaseNotes
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-    /// Bumped on each tap that asks for a translation, the translation task runs again on every change
-    @State private var translationRequests = 0
-    /// Translated text by block index, kept so switching back and forth does not translate again
-    @State private var translated: [Int: String] = [:]
-    @State private var showsTranslation = false
-    @State private var isTranslating = false
     private let log = Logger.micyou("update")
-
-    /// The app's language when it is not English and the system translator exists, nil hides the translate button
-    private static let targetLanguage: Locale.Language? = {
-        guard #available(iOS 18, *), let language = Bundle.main.preferredLocalizations.first, !language.hasPrefix("en") else { return nil }
-        return Locale.Language(identifier: language)
-    }()
 
     var body: some View {
         NavigationStack {
@@ -76,55 +60,20 @@ struct ReleaseNotesView: View {
             .navigationTitle(L10n.Home.updateNotesTitle(release.version.description))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if Self.targetLanguage != nil {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(showsTranslation ? L10n.Home.showOriginalNotes : L10n.Home.translateNotes, action: toggleTranslation)
-                            .disabled(isTranslating)
-                    }
-                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L10n.Common.done) { dismiss() }
                 }
             }
-            .notesTranslation(requests: translationRequests, target: Self.targetLanguage) { translator in
-                await translate(with: translator)
-            }
-            .animation(Motion.state, value: showsTranslation)
         }
         .presentationDetents([.medium, .large])
     }
 
     private func text(at index: Int) -> String {
-        showsTranslation ? translated[index] ?? notes.blocks[index].text : notes.blocks[index].text
+        notes.blocks[index].text
     }
 
     private var thanksIndices: [Int] {
         notes.blocks.indices.filter { notes.blocks[$0].isThanks }
-    }
-
-    private func toggleTranslation() {
-        if !translated.isEmpty {
-            showsTranslation.toggle()
-        } else {
-            translationRequests += 1
-        }
-    }
-
-    /// The system asks to download the languages first when they are missing
-    private func translate(with translator: (String) async throws -> String) async {
-        isTranslating = true
-        defer { isTranslating = false }
-        do {
-            // One string at a time, a batch of requests cannot be sent to the session from the main actor
-            var results: [Int: String] = [:]
-            for (index, block) in notes.blocks.enumerated() {
-                results[index] = try await translator(block.text)
-            }
-            translated = results
-            showsTranslation = true
-        } catch {
-            log.error("Release notes translation failed: \(String(describing: error), privacy: .public)")
-        }
     }
 
     @ViewBuilder
@@ -202,52 +151,6 @@ private struct ThanksCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.pink.opacity(0.12), in: .rect(cornerRadius: 16))
         .accessibilityElement(children: .contain)
-    }
-}
-
-/// Runs the system translator for the notes, which only exists from iOS 18
-@available(iOS 18, *)
-private struct NotesTranslation: ViewModifier {
-    let requests: Int
-    let target: Locale.Language?
-    /// Handed a function that translates one string with the session
-    let translate: @MainActor ((String) async throws -> String) async -> Void
-    /// Set on the first request, the translation task runs whenever it changes
-    @State private var configuration: TranslationSession.Configuration?
-
-    func body(content: Content) -> some View {
-        content
-            .translationTask(configuration) { session in
-                await run(session)
-            }
-            .onChange(of: requests) { _ in
-                if configuration == nil {
-                    configuration = .init(source: Locale.Language(identifier: "en"), target: target)
-                } else {
-                    // Runs the task again after a failed or cancelled attempt
-                    configuration?.invalidate()
-                }
-            }
-    }
-
-    private func run(_ session: TranslationSession) async {
-        await translate { try await session.translate($0).targetText }
-    }
-}
-
-private extension View {
-    /// Leaves the view as it is before iOS 18, the translate button is hidden there
-    @ViewBuilder
-    func notesTranslation(
-        requests: Int,
-        target: Locale.Language?,
-        translate: @escaping @MainActor ((String) async throws -> String) async -> Void
-    ) -> some View {
-        if #available(iOS 18, *) {
-            modifier(NotesTranslation(requests: requests, target: target, translate: translate))
-        } else {
-            self
-        }
     }
 }
 
