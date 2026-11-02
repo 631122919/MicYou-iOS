@@ -81,13 +81,8 @@ struct WelcomeView: View {
 private extension View {
     /// The larger page sheet on iPad, the default form sheet is too short for all three steps in landscape
     /// Same full height sheet as before on iPhone
-    @ViewBuilder
     func welcomeSheetSizing() -> some View {
-        if #available(iOS 18, *) {
-            presentationSizing(.page)
-        } else {
-            self
-        }
+        self
     }
 }
 
