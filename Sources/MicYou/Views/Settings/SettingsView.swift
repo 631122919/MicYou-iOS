@@ -81,9 +81,6 @@ struct SettingsView: View {
                     if settings.voiceProcessing {
                         MicrophoneModeRow()
                     }
-                    if #available(iOS 26, *) {
-                        HighQualityBluetoothRow()
-                    }
                 }
 
                 Section(L10n.Settings.general) {
