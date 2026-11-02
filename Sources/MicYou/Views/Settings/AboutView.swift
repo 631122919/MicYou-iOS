@@ -285,7 +285,7 @@ private struct AboutHeader: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
-                .background(.fill.tertiary, in: Capsule())
+                .background(.fillTertiary, in: Capsule())
                 .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
