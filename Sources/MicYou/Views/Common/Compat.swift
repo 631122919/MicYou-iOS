@@ -27,6 +27,15 @@ enum Haptics {
     }
 }
 
+extension ShapeStyle where Self == Color {
+    /// The secondary and tertiary fills, `.fill` is iOS 17
+    static var fillSecondary: Color { Color(.secondarySystemFill) }
+    static var fillTertiary: Color { Color(.tertiarySystemFill) }
+
+    /// The hairline separator colour, `.separator` is iOS 17
+    static var separatorStyle: Color { Color(.separator) }
+}
+
 extension ContentTransition {
     /// Digits that count to a new value from iOS 17, a plain fade before
     static var countingNumbers: ContentTransition {
