@@ -271,7 +271,7 @@ private struct ReconnectProgress: View {
         HStack(spacing: 8) {
             ForEach(1...AppModel.maxReconnectAttempts, id: \.self) { index in
                 let bar = Capsule()
-                    .fill(index <= attempt ? AnyShapeStyle(.blue) : AnyShapeStyle(.fill.tertiary))
+                    .fill(index <= attempt ? AnyShapeStyle(.blue) : AnyShapeStyle(.fillTertiary))
                     .frame(height: 6)
                 // The current attempt breathes, so the long waits between retries do not look frozen
                 if index == attempt && !reduceMotion {
@@ -353,7 +353,6 @@ private struct StreamStats: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(idealWidth: 300)
                             .padding()
-                            .presentationCompactAdaptation(.popover)
                     }
                 }
                 .transition(.opacity)
