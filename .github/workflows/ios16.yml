@@ -1,12 +1,14 @@
 name: iOS 16 IPA
 
 # Builds an unsigned IPA with an iOS 16 deployment target, for a device that cannot run the
-# upstream release (iOS 17 and later). Runs on a macOS runner, no Mac needed locally
+# upstream release (iOS 17 and later). Runs on a macOS runner, no Mac needed locally.
+# A successful build is published as a release asset, so the IPA can be downloaded from a
+# browser without anyone watching the run
 on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ios16-${{ github.ref }}
@@ -34,3 +36,13 @@ jobs:
           path: xtool/MicYou.ipa
           retention-days: 30
           if-no-files-found: error
+
+      - name: Publish the IPA
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view ios16-latest >/dev/null 2>&1 || gh release create ios16-latest \
+            --title "MicYou for iOS 16" \
+            --notes "Unsigned IPA built from the iOS 16 port. Sign it with AltStore, SideStore, Sideloadly or TrollStore."
+          gh release upload ios16-latest xtool/MicYou.ipa --clobber
