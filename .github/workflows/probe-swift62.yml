@@ -1,0 +1,33 @@
+name: probe-swift62
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-xtool
+        with:
+          min-sdk-major: "18"
+      - name: Install the Swift 6.2 toolchain
+        run: |
+          set -x
+          ls -d /Applications/Xcode*.app
+          curl -fsSL -o "$RUNNER_TEMP/swift.pkg"             https://download.swift.org/swift-6.2.2-release/xcode/swift-6.2.2-RELEASE/swift-6.2.2-RELEASE-osx.pkg
+          sudo installer -pkg "$RUNNER_TEMP/swift.pkg" -target /
+          ls /Library/Developer/Toolchains/
+          export TOOLCHAINS=swift
+          swift --version
+          xcrun --find swift
+          swift package --version
+          echo "TOOLCHAINS=swift" >> "$GITHUB_ENV"
+      - name: Build
+        run: |
+          set -x
+          export TOOLCHAINS=swift
+          swift --version
+          xtool dev build -c release --ipa
+          ls -la xtool
