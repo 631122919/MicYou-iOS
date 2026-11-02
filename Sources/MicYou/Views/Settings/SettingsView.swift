@@ -310,7 +310,7 @@ private struct PresetCard: View {
             .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .topLeading)
-            .glassSurface(in: Self.shape, tint: isSelected ? .accentColor : nil, fallback: .fill.tertiary)
+            .glassSurface(in: Self.shape, tint: isSelected ? .accentColor : nil, fallback: .fillTertiary)
             .contentShape(Self.shape)
         }
         .buttonStyle(.surface)
