@@ -206,14 +206,14 @@ struct HomeHeader<Leading: View>: View {
                     icon(L10n.Dim.button, systemImage: "moon.fill")
                 }
                 .glassButtonStyle()
-                .buttonBorderShape(.circle)
+                .buttonBorderShape(.capsule)
                 .transition(.opacity.combined(with: .scale(scale: 0.8)))
             }
             Button(action: openSettings) {
                 icon(L10n.Common.settings, systemImage: "gearshape")
             }
             .glassButtonStyle()
-            .buttonBorderShape(.circle)
+            .buttonBorderShape(.capsule)
             .tourTarget(.settings)
             .keyboardShortcut(",", modifiers: .command)
         }
