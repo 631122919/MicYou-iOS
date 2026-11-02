@@ -147,7 +147,7 @@ private struct LicenseBadge: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(.fill.tertiary, in: Capsule())
+            .background(.fillTertiary, in: Capsule())
     }
 }
 
