@@ -1,0 +1,36 @@
+name: iOS 16 IPA
+
+# Builds an unsigned IPA with an iOS 16 deployment target, for a device that cannot run the
+# upstream release (iOS 17 and later). Runs on a macOS runner, no Mac needed locally
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios16-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-xtool
+
+      - name: Build IPA
+        run: Tools/build-ipa.sh
+        timeout-minutes: 30
+
+      - name: Verify
+        run: Tools/verify-ipa16.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: MicYou-iOS16
+          path: xtool/MicYou.ipa
+          retention-days: 30
+          if-no-files-found: error

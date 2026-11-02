@@ -6,8 +6,8 @@ import SwiftUI
 
 /// Sheet for picking a nearby computer, the USB cable, a recent address or typing a new one
 struct ServerPickerView: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focus: ManualField?
     /// The address or port was typed into since the sheet opened or a row was picked
@@ -27,11 +27,14 @@ struct ServerPickerView: View {
             .adaptiveAnimation(value: model.browser.state)
             .adaptiveAnimation(value: model.selection)
             // Without Bonjour the address is the only way in, start there instead of leaving a grey placeholder
-            .onChange(of: model.browser.state, initial: true) { _, state in
+            .onChange(of: model.browser.state) { state in
                 if state == .unavailable && settings.host.isEmpty { focus = .address }
             }
-            .onChange(of: settings.host) { editedManual = true }
-            .onChange(of: settings.port) { editedManual = true }
+            .onAppear {
+                if model.browser.state == .unavailable && settings.host.isEmpty { focus = .address }
+            }
+            .onChange(of: settings.host) { _ in editedManual = true }
+            .onChange(of: settings.port) { _ in editedManual = true }
             .refreshable {
                 model.browser.restart()
                 // Hold the spinner briefly so the pull reads as a fresh search
@@ -96,7 +99,7 @@ private struct ChoiceRow: View {
 }
 
 private struct NearbySection: View {
-    @Environment(AppModel.self) private var model
+    @EnvironmentObject private var model: AppModel
     let pick: (ServerSelection) -> Void
 
     var body: some View {
@@ -144,7 +147,7 @@ private struct NearbySection: View {
 }
 
 private struct USBSection: View {
-    @Environment(AppModel.self) private var model
+    @EnvironmentObject private var model: AppModel
     let pick: (ServerSelection) -> Void
 
     var body: some View {
@@ -163,13 +166,12 @@ private struct USBSection: View {
 enum ManualField { case address, port }
 
 private struct ManualSection: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
     var focus: FocusState<ManualField?>.Binding
     let pick: (ServerSelection) -> Void
 
     var body: some View {
-        @Bindable var settings = settings
         Section {
             LabeledContent(L10n.Home.address) {
                 TextField(L10n.Home.addressPlaceholder, text: $settings.host)
@@ -223,8 +225,8 @@ private struct ManualSection: View {
 
 /// Addresses used before, tapping one uses it again and swiping removes it
 private struct RecentSection: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
     let pick: (ServerSelection) -> Void
 
     var body: some View {

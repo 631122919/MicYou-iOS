@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import Combine
 import Foundation
 import MicYouCore
 import Network
-import Observation
 import os
 
 /// Follows the network path so the home screen can warn before a connection that cannot reach the computer
-@MainActor @Observable
-final class NetworkMonitor {
+@MainActor
+final class NetworkMonitor: ObservableObject {
     /// Local until the first path arrives, so nothing flashes at launch
-    private(set) var status: NetworkStatus = .local
+    @Published private(set) var status: NetworkStatus = .local
     /// The status whose warning was closed, it shows again once the network changes
-    private var dismissed: NetworkStatus?
+    @Published private var dismissed: NetworkStatus?
     /// Called on the main actor after the status changed
-    @ObservationIgnored var onChange: ((NetworkStatus) -> Void)?
+    var onChange: ((NetworkStatus) -> Void)?
 
-    @ObservationIgnored private let monitor = NWPathMonitor()
-    @ObservationIgnored private let log = Logger.micyou("model")
+    private let monitor = NWPathMonitor()
+    private let log = Logger.micyou("model")
 
     init() {
         monitor.pathUpdateHandler = { [weak self] path in

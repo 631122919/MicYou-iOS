@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import AVFoundation
+import Combine
 import Foundation
 import MicYouCore
 import MicYouProtocol
 import MicYouShared
 import Network
-import Observation
 import UIKit
 import os
 
@@ -36,8 +36,8 @@ enum ServerSelection: Hashable {
 }
 
 /// App wide state, also used by intents and deep links
-@MainActor @Observable
-final class AppModel {
+@MainActor
+final class AppModel: ObservableObject {
     static let shared = AppModel()
     static let reconnectPolicy = ReconnectPolicy.standard
     static var maxReconnectAttempts: Int { reconnectPolicy.maxAttempts }
@@ -47,32 +47,32 @@ final class AppModel {
     let updates = UpdateChecker(settings: AppSettings.shared)
     let network = NetworkMonitor()
 
-    private(set) var phase: ConnectionPhase = .idle
-    private(set) var isMuted = false {
+    @Published private(set) var phase: ConnectionPhase = .idle
+    @Published private(set) var isMuted = false {
         // Mirrored to the system input mute, which a press on the AirPods stem toggles
         didSet { if isMuted != oldValue { capture.setSystemMuted(isMuted) } }
     }
     /// Smoothed input level in dBFS
-    private(set) var levelDB = SampleProcessor.silence
+    @Published private(set) var levelDB = SampleProcessor.silence
     /// A gain that would suit the input better, while audio is reaching the computer
-    private(set) var gainAdvice: GainAdvisor.Advice?
-    private(set) var throughput = 0
+    @Published private(set) var gainAdvice: GainAdvisor.Advice?
+    @Published private(set) var throughput = 0
     /// Link quality reported by the desktop, nil until it sends some, older desktops never do
-    private(set) var linkStats: StatsMessage?
-    private(set) var remoteAddress: String?
-    private(set) var activeFormat: AudioStreamFormat?
-    private(set) var streamingSince: Date?
-    private(set) var connectedName: String?
+    @Published private(set) var linkStats: StatsMessage?
+    @Published private(set) var remoteAddress: String?
+    @Published private(set) var activeFormat: AudioStreamFormat?
+    @Published private(set) var streamingSince: Date?
+    @Published private(set) var connectedName: String?
     /// The microphone in use, follows headsets coming and going
-    private(set) var audioInput: AudioInputInfo?
-    private(set) var captureStatus: CaptureStatus = .running
+    @Published private(set) var audioInput: AudioInputInfo?
+    @Published private(set) var captureStatus: CaptureStatus = .running
     /// A black screen covers the app while streaming, it keeps the display on but dark
-    private(set) var isDimmed = false
+    @Published private(set) var isDimmed = false
     /// Microphones to pick from, refreshed when a picker appears and when devices come and go
-    private(set) var inputOptions: [InputOption] = []
+    @Published private(set) var inputOptions: [InputOption] = []
     /// One-off message, for example when Opus is not available
-    var notice: String?
-    var selection: ServerSelection {
+    @Published var notice: String?
+    @Published var selection: ServerSelection {
         didSet {
             if case .discovered(let name) = selection { settings.lastServiceName = name } else { settings.lastServiceName = nil }
             settings.usbSelected = selection == .usb
@@ -80,43 +80,44 @@ final class AppModel {
         }
     }
 
-    @ObservationIgnored private let log = Logger.micyou("model")
-    @ObservationIgnored private let capture = AudioCapture()
-    @ObservationIgnored private let sink = SessionSink()
-    @ObservationIgnored private let liveActivity = LiveActivityController()
-    @ObservationIgnored private var session: StreamSession?
-    @ObservationIgnored private var sessionToken: UUID?
-    @ObservationIgnored private var currentConfig: StreamConfig?
-    @ObservationIgnored private var reconnectTask: Task<Void, Never>?
-    @ObservationIgnored private var hasStreamed = false
-    @ObservationIgnored private var gainAdvisor = GainAdvisor()
+    private let log = Logger.micyou("model")
+    private let capture = AudioCapture()
+    private let sink = SessionSink()
+    private var session: StreamSession?
+    private var sessionToken: UUID?
+    private var currentConfig: StreamConfig?
+    private var reconnectTask: Task<Void, Never>?
+    private var hasStreamed = false
+    private var gainAdvisor = GainAdvisor()
     /// Set while capture is running or starting, a stale start that fails later is ignored
-    @ObservationIgnored private var captureToken: UUID?
+    private var captureToken: UUID?
     /// Identifies the current connect, so one that waited on the permission prompt can tell it was superseded
-    @ObservationIgnored private var connectToken: UUID?
+    private var connectToken: UUID?
     /// Connect on launch is considered once per process
-    @ObservationIgnored private var launchHandled = false
+    private var launchHandled = false
     /// A link or shortcut opened the app, it decides whether to connect
-    @ObservationIgnored private var openedByLink = false
+    private var openedByLink = false
     /// Voice processing of the running capture, which keeps going across reconnects
     private var captureVoiceProcessing: Bool?
+    /// Forwarded changes of the objects this model owns, they have no Observation to follow before iOS 17
+    private var cancellables: Set<AnyCancellable> = []
 
     init() {
         selection = settings.usbSelected ? .usb : settings.lastServiceName.map { .discovered(name: $0) } ?? .manual
-        liveActivity.endStale()
-        // The Live Activity shows the microphone in use, so follow headsets coming and going
+        // Before Observation a view only follows the object it observes, so the parts of the model
+        // forward their changes and every view watching the model sees the browser, settings and rest
+        let changes = objectWillChange
+        for publisher in [settings.objectWillChange, browser.objectWillChange, updates.objectWillChange, network.objectWillChange] {
+            publisher.sink { _ in changes.send() }.store(in: &cancellables)
+        }
+        // The microphone in use follows headsets coming and going
         NotificationCenter.default.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated {
+            Task { @MainActor in
                 guard let self else { return }
                 self.refreshSideEffects()
                 // Only once a picker has asked, listing inputs sets the session category
                 if !self.inputOptions.isEmpty { self.refreshInputOptions() }
             }
-        }
-        // Swiping the app away kills the process, the system keeps the activity unless it is ended first
-        // Sent while streaming because the audio background mode keeps the app running rather than suspended
-        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: .main) { _ in
-            LiveActivityController.endAllBeforeExit()
         }
         network.onChange = { [weak self] status in self?.networkChanged(status) }
     }
@@ -587,32 +588,5 @@ final class AppModel {
         UIApplication.shared.isIdleTimerDisabled = (settings.keepScreenOn || isDimmed) && isActive
         refreshQuickActions()
         audioInput = isActive ? AudioInputInfo.current() : nil
-
-        guard settings.liveActivity, isActive, let name = connectedName else {
-            liveActivity.end()
-            return
-        }
-        let activityPhase: StreamActivityAttributes.Phase
-        var attempt = 0
-        switch phase {
-        case .streaming: activityPhase = captureStatus == .running ? .streaming : .interrupted
-        case .reconnecting(let n): activityPhase = .reconnecting; attempt = n
-        default: activityPhase = .connecting
-        }
-        var detail = ""
-        if let format = activeFormat, let config = currentConfig {
-            detail = StreamText.activityDetail(format, opusBitrate: config.opusBitrate, transport: config.transport)
-        }
-        let input = audioInput
-        liveActivity.update(serverName: name, state: .init(
-            phase: activityPhase,
-            isMuted: isMuted,
-            startedAt: streamingSince ?? .now,
-            detail: detail,
-            input: input?.name ?? "",
-            inputSymbol: input?.symbol ?? "mic.fill",
-            attempt: attempt,
-            maxAttempts: Self.maxReconnectAttempts
-        ))
     }
 }

@@ -2,13 +2,13 @@
 // Looks for a newer release on GitHub, the same source the Android and desktop apps use
 // A sideloaded app cannot install updates itself, so a new release only links to its page
 
+import Combine
 import Foundation
 import MicYouCore
-import Observation
 import os
 
-@MainActor @Observable
-final class UpdateChecker {
+@MainActor
+final class UpdateChecker: ObservableObject {
     enum State: Equatable {
         case idle
         case checking
@@ -17,10 +17,10 @@ final class UpdateChecker {
         case failed
     }
 
-    private(set) var state: State = .idle
+    @Published private(set) var state: State = .idle
 
-    @ObservationIgnored private let settings: AppSettings
-    @ObservationIgnored private let log = Logger.micyou("update")
+    private let settings: AppSettings
+    private let log = Logger.micyou("update")
     private nonisolated static let api = URL(string: "https://api.github.com/repos/MicYou-Dev/MicYou-iOS/releases/latest")!
 
     init(settings: AppSettings) {

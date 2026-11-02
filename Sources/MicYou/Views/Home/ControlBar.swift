@@ -6,8 +6,8 @@ import SwiftUI
 /// Mute and disconnect pinned above the home indicator while a session is active
 /// With push to talk the mute button becomes a wide talk button and disconnect shrinks to a circle
 struct ControlBar: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         if #available(iOS 26, *) {
@@ -58,7 +58,9 @@ struct ControlBar: View {
         .buttonStyle(.surface)
         .accessibilityLabel(model.isMuted ? L10n.Common.unmute : L10n.Common.mute)
         .accessibilityAddTraits(model.isMuted ? .isSelected : [])
-        .sensoryFeedback(.selection, trigger: model.isMuted)
+        .onChange(of: model.isMuted) { _ in
+            Haptics.selection()
+        }
         .animation(Motion.state, value: model.isMuted)
     }
 
@@ -91,14 +93,14 @@ struct ControlBar: View {
 /// Unmutes while held, like a walkie-talkie
 /// A plain view with a gesture rather than a button, a button only reports the tap once it is released
 private struct TalkButton: View {
-    @Environment(AppModel.self) private var model
+    @EnvironmentObject private var model: AppModel
     /// Resets when the touch ends and also when the system cancels it, for example for a call or Control Center
     @GestureState private var isHeld = false
 
     var body: some View {
         Label(isTalking ? L10n.Status.talking : L10n.Common.holdToTalk, systemImage: isTalking ? "mic.fill" : "mic.slash.fill")
             .font(.headline)
-            .contentTransition(.symbolEffect(.replace))
+            .symbolReplace()
             .foregroundStyle(isTalking ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
             .frame(maxWidth: .infinity, minHeight: 56)
             .glassSurface(in: .capsule, tint: isTalking ? .green : nil, fallback: .fill.secondary)
@@ -108,9 +110,10 @@ private struct TalkButton: View {
                 DragGesture(minimumDistance: 0)
                     .updating($isHeld) { _, held, _ in held = true }
             )
-            .onChange(of: isHeld) { _, held in model.setMuted(!held) }
-            .sensoryFeedback(.impact(weight: .medium), trigger: isHeld) { _, held in held }
-            .sensoryFeedback(.impact(weight: .light), trigger: isHeld) { _, held in !held }
+            .onChange(of: isHeld) { held in model.setMuted(!held) }
+            .onChange(of: isHeld) { held in
+                Haptics.impact(held ? .medium : .light)
+            }
             .animation(Motion.state, value: isTalking)
             // Holding is hard with VoiceOver, a double tap toggles instead
             .accessibilityElement(children: .ignore)

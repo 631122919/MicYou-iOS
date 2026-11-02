@@ -5,13 +5,13 @@ import SwiftUI
 /// Shared timing so every screen moves with the same feel
 enum Motion {
     /// Idle to session and back
-    static let screen: Animation = .smooth(duration: 0.4)
+    static let screen: Animation = .easeInOut(duration: 0.4)
     /// Changes inside a screen: phase, mute, notices, list rows
-    static let state: Animation = .smooth(duration: 0.3)
+    static let state: Animation = .easeInOut(duration: 0.3)
     /// Leaving content clears out quickly so two layers of glass are never half visible at once
     static let exit: Animation = .easeOut(duration: 0.15)
     /// Controls sliding in from an edge
-    static let slide: Animation = .spring(duration: 0.45, bounce: 0.12)
+    static let slide: Animation = .spring(response: 0.45, dampingFraction: 0.85)
 }
 
 extension AnyTransition {
@@ -41,11 +41,14 @@ extension ContentTransition {
     /// Symbols that share a shape morph into each other, such as a slash drawn on, from iOS 18;
     /// a plain replace before that and between unrelated symbols
     static var magicReplace: ContentTransition {
-        if #available(iOS 18, *) {
-            .symbolEffect(.replace.magic(fallback: .replace))
-        } else {
-            .symbolEffect(.replace)
+        // Before iOS 17 there is no symbol replace at all, the symbol only fades
+        if #available(iOS 17, *) {
+            if #available(iOS 18, *) {
+                return .symbolEffect(.replace.magic(fallback: .replace))
+            }
+            return .symbolEffect(.replace)
         }
+        return .opacity
     }
 }
 
@@ -93,7 +96,7 @@ struct SurfaceButtonStyle: ButtonStyle {
             configuration.label
                 .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
                 .opacity(configuration.isPressed ? 0.8 : 1)
-                .animation(.spring(duration: 0.25), value: configuration.isPressed)
+                .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
         }
     }
 }

@@ -30,12 +30,15 @@ struct LevelMeterView: View {
                     context.fill(Path(roundedRect: rect, cornerRadius: min(3, width / 2)), with: .color(color))
                 }
             }
-            .onChange(of: reading.isSettled) { _, settled in
+            .onChange(of: reading.isSettled) { settled in
                 if settled { isIdle = true }
             }
         }
-        .onChange(of: levelDB, initial: true) { _, level in
+        .onChange(of: levelDB) { level in
             if !ballistics.isSettled(at: level) { isIdle = false }
+        }
+        .onAppear {
+            if !ballistics.isSettled(at: levelDB) { isIdle = false }
         }
         .accessibilityElement()
         .accessibilityLabel(L10n.Status.inputLevel)

@@ -45,7 +45,6 @@ struct WelcomeView: View {
             .frame(maxWidth: Self.maxWidth)
             .frame(maxWidth: .infinity)
         }
-        .scrollBounceBehavior(.basedOnSize)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 14) {
                 HStack(spacing: 10) {

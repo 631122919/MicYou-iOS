@@ -6,13 +6,12 @@ import MicYouShared
 import SwiftUI
 
 struct SettingsView: View {
-    @Environment(AppSettings.self) private var settings
-    @Environment(AppModel.self) private var model
+    @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
     @State private var presetTaps = 0
 
     var body: some View {
-        @Bindable var settings = settings
         NavigationStack {
             Form {
                 Section {
@@ -24,7 +23,9 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    .sensoryFeedback(.selection, trigger: presetTaps)
+                    .onChange(of: presetTaps) { _ in
+                        Haptics.selection()
+                    }
                     // Inset so the cards sit inside the section's rounded corners instead of being clipped by them
                     .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
                 } header: {
@@ -91,10 +92,6 @@ struct SettingsView: View {
                         Text(L10n.Settings.pushToTalkDetail)
                     }
                     Toggle(L10n.Settings.keepScreenOn, isOn: $settings.keepScreenOn)
-                    Toggle(isOn: $settings.liveActivity) {
-                        Text(L10n.Settings.liveActivity)
-                        Text(L10n.Settings.liveActivityDetail)
-                    }
                 }
 
                 Section {
@@ -116,7 +113,7 @@ struct SettingsView: View {
             .navigationTitle(L10n.Common.settings)
             .navigationBarTitleDisplayMode(.inline)
             // Replaying the introduction from the about page needs the home screen
-            .onChange(of: settings.welcomeShown) { _, shown in
+            .onChange(of: settings.welcomeShown) { shown in
                 if !shown { dismiss() }
             }
             .toolbar {
@@ -192,14 +189,14 @@ private struct PendingChangesBar: View {
 
 /// Roughly how much the stream sends with the current choices
 private struct DataRateRow: View {
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         let kbps = settings.streamOptions.estimatedBitrate / 1000
         LabeledContent(L10n.Settings.dataRate) {
             Text(L10n.Settings.dataRateValue(L10n.Unit.kbps(kbps)))
                 .monospacedDigit()
-                .contentTransition(.numericText(value: Double(kbps)))
+                .contentTransition(.countingNumbers)
         }
         .adaptiveAnimation(value: kbps)
     }
@@ -207,8 +204,8 @@ private struct DataRateRow: View {
 
 /// The microphone to record from, switches right away while streaming
 private struct InputPicker: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         Picker(selection: Binding(get: { settings.input }, set: { model.setInput($0) })) {
@@ -225,8 +222,8 @@ private struct InputPicker: View {
 
 /// Full bandwidth AirPods recording, which only the default mode offers, applies right away
 private struct HighQualityBluetoothRow: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -251,7 +248,7 @@ private struct HighQualityBluetoothRow: View {
 /// The system microphone mode, such as Voice Isolation, which only the user can change in Control Center
 /// It only applies to voice processing input, so the mode is shown while such a stream runs
 private struct MicrophoneModeRow: View {
-    @Environment(AppModel.self) private var model
+    @EnvironmentObject private var model: AppModel
     @State private var mode = AVCaptureDevice.activeMicrophoneMode
 
     var body: some View {

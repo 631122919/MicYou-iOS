@@ -50,7 +50,6 @@ struct ReleaseNotesView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
             }
-            .scrollBounceBehavior(.basedOnSize)
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 12) {
                     Text(L10n.Home.updateText)
@@ -78,7 +77,7 @@ struct ReleaseNotesView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if Self.targetLanguage != nil {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: .navigationBarLeading) {
                         Button(showsTranslation ? L10n.Home.showOriginalNotes : L10n.Home.translateNotes, action: toggleTranslation)
                             .disabled(isTranslating)
                     }
@@ -221,7 +220,7 @@ private struct NotesTranslation: ViewModifier {
             .translationTask(configuration) { session in
                 await run(session)
             }
-            .onChange(of: requests) {
+            .onChange(of: requests) { _ in
                 if configuration == nil {
                     configuration = .init(source: Locale.Language(identifier: "en"), target: target)
                 } else {

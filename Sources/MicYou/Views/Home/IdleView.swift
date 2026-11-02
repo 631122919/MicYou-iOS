@@ -6,7 +6,7 @@ import SwiftUI
 
 /// The computer to use, the connect button and the format that will be sent
 struct IdleView: View {
-    @Environment(AppModel.self) private var model
+    @EnvironmentObject private var model: AppModel
     @Environment(\.openURL) private var openURL
     @State private var shownRelease: AppRelease?
     /// Two columns in landscape on iPad: the cards on the left, the connect button on the right
@@ -168,8 +168,8 @@ private struct HeroButton: View {
 
 /// Shows where the next stream goes, tapping it opens the picker
 private struct TargetCard: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
     let action: () -> Void
 
     var body: some View {
@@ -284,8 +284,8 @@ private struct TargetCard: View {
 
 /// Codec, sample rate and transport for the next stream, tapping the card opens the settings
 private struct FormatSummary: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
     let action: () -> Void
 
     var body: some View {

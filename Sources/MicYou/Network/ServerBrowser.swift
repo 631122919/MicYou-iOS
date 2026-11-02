@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import Combine
 import Foundation
 import MicYouCore
 import MicYouProtocol
 import Network
-import Observation
 import os
 
 struct DiscoveredServer: Identifiable, Hashable, Sendable {
@@ -24,8 +24,8 @@ struct DiscoveredServer: Identifiable, Hashable, Sendable {
 }
 
 /// Browses for desktops advertising `_micyou._tcp`
-@MainActor @Observable
-final class ServerBrowser {
+@MainActor
+final class ServerBrowser: ObservableObject {
     enum State: Equatable {
         case idle
         case searching
@@ -35,11 +35,11 @@ final class ServerBrowser {
         case failed(String)
     }
 
-    private(set) var servers: [DiscoveredServer] = []
-    private(set) var state: State = .idle
+    @Published private(set) var servers: [DiscoveredServer] = []
+    @Published private(set) var state: State = .idle
 
-    @ObservationIgnored private var browser: NWBrowser?
-    @ObservationIgnored private let log = Logger.micyou("browser")
+    private var browser: NWBrowser?
+    private let log = Logger.micyou("browser")
 
     func start() {
         guard browser == nil else { return }
@@ -48,7 +48,7 @@ final class ServerBrowser {
         let browser = NWBrowser(for: .bonjour(type: MicYouWire.bonjourServiceType, domain: nil), using: parameters)
         // Started on the main queue, so handlers apply in order without hopping through tasks
         browser.stateUpdateHandler = { [weak self] state in
-            MainActor.assumeIsolated { self?.update(state) }
+            Task { @MainActor in self?.update(state) }
         }
         browser.browseResultsChangedHandler = { [weak self] results, _ in
             let servers = results.compactMap { result -> DiscoveredServer? in
@@ -56,7 +56,7 @@ final class ServerBrowser {
                 return DiscoveredServer(name: name, endpoint: result.endpoint)
             }
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-            MainActor.assumeIsolated { self?.servers = servers }
+            Task { @MainActor in self?.servers = servers }
         }
         browser.start(queue: .main)
         self.browser = browser

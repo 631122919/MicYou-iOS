@@ -7,7 +7,7 @@ import PackageDescription
 let package = Package(
     name: "MicYouProtocol",
     platforms: [
-        .iOS(.v17),
+        .iOS(.v16),
         .macOS(.v15),
     ],
     products: [

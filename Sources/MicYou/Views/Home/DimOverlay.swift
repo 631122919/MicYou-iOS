@@ -6,7 +6,7 @@ import SwiftUI
 /// A black screen over the session, the display stays on but an OLED panel draws almost nothing
 /// Starts centered and drifts a little every minute so nothing burns in, a tap anywhere brings the app back
 struct DimOverlay: View {
-    @Environment(AppModel.self) private var model
+    @EnvironmentObject private var model: AppModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var dimmedAt = Date.now
 

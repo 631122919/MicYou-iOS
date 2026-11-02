@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import Combine
 import Foundation
 import MicYouCore
 import MicYouProtocol
 import Network
-import Observation
 
 /// Persistent user preferences, read when a stream starts
-@MainActor @Observable
-final class AppSettings {
+@MainActor
+final class AppSettings: ObservableObject {
     static let shared = AppSettings()
 
     static let sampleRates = [48000, 44100, 16000]
@@ -22,44 +22,44 @@ final class AppSettings {
         case welcomeShown, tourShown, autoCheckUpdates, lastUpdateCheck, dismissedUpdate
     }
 
-    @ObservationIgnored private let defaults: UserDefaults
+    private let defaults: UserDefaults
 
-    var host: String { didSet { save(host, .host) } }
-    var port: Int { didSet { save(port, .port) } }
-    var transport: TransportMode { didSet { save(transport.rawValue, .transport) } }
-    var codec: CodecChoice { didSet { save(codec.rawValue, .codec) } }
-    var opusBitrate: Int { didSet { save(opusBitrate, .opusBitrate) } }
-    var sampleRate: Int { didSet { save(sampleRate, .sampleRate) } }
-    var stereo: Bool { didSet { save(stereo, .stereo) } }
-    var voiceProcessing: Bool { didSet { save(voiceProcessing, .voiceProcessing) } }
+    @Published var host: String { didSet { save(host, .host) } }
+    @Published var port: Int { didSet { save(port, .port) } }
+    @Published var transport: TransportMode { didSet { save(transport.rawValue, .transport) } }
+    @Published var codec: CodecChoice { didSet { save(codec.rawValue, .codec) } }
+    @Published var opusBitrate: Int { didSet { save(opusBitrate, .opusBitrate) } }
+    @Published var sampleRate: Int { didSet { save(sampleRate, .sampleRate) } }
+    @Published var stereo: Bool { didSet { save(stereo, .stereo) } }
+    @Published var voiceProcessing: Bool { didSet { save(voiceProcessing, .voiceProcessing) } }
     /// Software gain in dB, within inputGainRange
-    var inputGainDB: Double { didSet { save(inputGainDB, .inputGainDB) } }
+    @Published var inputGainDB: Double { didSet { save(inputGainDB, .inputGainDB) } }
     /// The microphone to record from, applies immediately
-    var input: InputPreference { didSet { save(input.storageValue, .input) } }
-    var fecEnabled: Bool { didSet { save(fecEnabled, .fecEnabled) } }
-    var autoReconnect: Bool { didSet { save(autoReconnect, .autoReconnect) } }
+    @Published var input: InputPreference { didSet { save(input.storageValue, .input) } }
+    @Published var fecEnabled: Bool { didSet { save(fecEnabled, .fecEnabled) } }
+    @Published var autoReconnect: Bool { didSet { save(autoReconnect, .autoReconnect) } }
     /// Connects to the selected computer when the app opens
-    var autoConnect: Bool { didSet { save(autoConnect, .autoConnect) } }
+    @Published var autoConnect: Bool { didSet { save(autoConnect, .autoConnect) } }
     /// Muted unless the talk button is held
-    var pushToTalk: Bool { didSet { save(pushToTalk, .pushToTalk) } }
-    var keepScreenOn: Bool { didSet { save(keepScreenOn, .keepScreenOn) } }
-    var liveActivity: Bool { didSet { save(liveActivity, .liveActivity) } }
-    var recentHosts: [String] { didSet { save(recentHosts, .recentHosts) } }
+    @Published var pushToTalk: Bool { didSet { save(pushToTalk, .pushToTalk) } }
+    @Published var keepScreenOn: Bool { didSet { save(keepScreenOn, .keepScreenOn) } }
+    @Published var liveActivity: Bool { didSet { save(liveActivity, .liveActivity) } }
+    @Published var recentHosts: [String] { didSet { save(recentHosts, .recentHosts) } }
     /// Bonjour instance name of the last server picked from the list
-    var lastServiceName: String? { didSet { save(lastServiceName, .lastServiceName) } }
+    @Published var lastServiceName: String? { didSet { save(lastServiceName, .lastServiceName) } }
     /// The USB cable was picked last, it wins over lastServiceName
-    var usbSelected: Bool { didSet { save(usbSelected, .usbSelected) } }
+    @Published var usbSelected: Bool { didSet { save(usbSelected, .usbSelected) } }
     /// Full bandwidth recording from supported AirPods, iOS 26 and later
-    var highQualityBluetooth: Bool { didSet { save(highQualityBluetooth, .highQualityBluetooth) } }
+    @Published var highQualityBluetooth: Bool { didSet { save(highQualityBluetooth, .highQualityBluetooth) } }
     /// The welcome sheet appears once, on the first launch
-    var welcomeShown: Bool { didSet { save(welcomeShown, .welcomeShown) } }
+    @Published var welcomeShown: Bool { didSet { save(welcomeShown, .welcomeShown) } }
     /// The spotlight tour of the home screen follows the welcome sheet, also once
-    var tourShown: Bool { didSet { save(tourShown, .tourShown) } }
+    @Published var tourShown: Bool { didSet { save(tourShown, .tourShown) } }
     /// Look for a new release when the app opens, at most once a day
-    var autoCheckUpdates: Bool { didSet { save(autoCheckUpdates, .autoCheckUpdates) } }
-    var lastUpdateCheck: Date? { didSet { save(lastUpdateCheck, .lastUpdateCheck) } }
+    @Published var autoCheckUpdates: Bool { didSet { save(autoCheckUpdates, .autoCheckUpdates) } }
+    @Published var lastUpdateCheck: Date? { didSet { save(lastUpdateCheck, .lastUpdateCheck) } }
     /// The version whose home screen notice was closed, a newer one shows again
-    var dismissedUpdate: String? { didSet { save(dismissedUpdate, .dismissedUpdate) } }
+    @Published var dismissedUpdate: String? { didSet { save(dismissedUpdate, .dismissedUpdate) } }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults

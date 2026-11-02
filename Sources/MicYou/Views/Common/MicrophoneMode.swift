@@ -31,7 +31,7 @@ private struct MicrophoneModeTracker: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onChange(of: scenePhase) { _, phase in
+            .onChange(of: scenePhase) { phase in
                 if phase == .active { mode = AVCaptureDevice.activeMicrophoneMode }
             }
             .task(id: isActive) { mode = AVCaptureDevice.activeMicrophoneMode }

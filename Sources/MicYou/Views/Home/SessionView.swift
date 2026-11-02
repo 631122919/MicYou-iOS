@@ -8,8 +8,8 @@ import SwiftUI
 /// The live session: elapsed time, input level, stream facts and input gain
 /// Every phase uses the same layout, only the contents of each slot change, so nothing jumps while connecting or reconnecting
 struct SessionView: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
     /// Two columns in landscape on iPad: time and level on the left, stream facts and gain on the right
     let isWide: Bool
 
@@ -167,7 +167,7 @@ struct SessionView: View {
 
 /// Phase of the session as a glass capsule with a colored dot
 struct StatusPill: View {
-    @Environment(AppModel.self) private var model
+    @EnvironmentObject private var model: AppModel
 
     var body: some View {
         HStack(spacing: 8) {
@@ -185,7 +185,7 @@ struct StatusPill: View {
             .transition(.scale(scale: 0.5).combined(with: .opacity))
             // Rolls the attempt count instead of fading the whole label
             Text(title)
-                .contentTransition(.numericText())
+                .contentTransition(.countingNumbers)
         }
         .font(.subheadline.weight(.semibold))
         .padding(.horizontal, 14)
@@ -241,8 +241,8 @@ struct ElapsedTime: View {
             let text = Self.elapsed(from: since ?? context.date, to: context.date)
             // Not Text(timerInterval:), which may claim more width than it shows
             Text(text)
-                .contentTransition(.numericText(countsDown: false))
-                .adaptiveAnimation(.smooth(duration: 0.35), value: text)
+                .contentTransition(.countingNumbers)
+                .adaptiveAnimation(.easeInOut(duration: 0.35), value: text)
         }
         .font(.system(size: isLarge ? size * 1.4 : size, weight: .medium))
         .monospacedDigit()
@@ -264,6 +264,8 @@ struct ElapsedTime: View {
 private struct ReconnectProgress: View {
     let attempt: Int
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Drives the breathing bar of the running attempt
+    @State private var dimmed = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -273,11 +275,10 @@ private struct ReconnectProgress: View {
                     .frame(height: 6)
                 // The current attempt breathes, so the long waits between retries do not look frozen
                 if index == attempt && !reduceMotion {
-                    bar.phaseAnimator([1, 0.35]) { content, opacity in
-                        content.opacity(opacity)
-                    } animation: { _ in
-                        .easeInOut(duration: 0.8)
-                    }
+                    bar
+                        .opacity(dimmed ? 0.35 : 1)
+                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: dimmed)
+                        .onAppear { dimmed = true }
                 } else {
                     bar
                 }
@@ -293,8 +294,8 @@ private struct ReconnectProgress: View {
 
 /// Format, bitrate, transport, microphone and link quality of the stream, shown from the start of a connection
 private struct StreamStats: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
     @State private var micMode = AVCaptureDevice.activeMicrophoneMode
     @State private var showsMicModeHint = false
 
@@ -399,7 +400,7 @@ private struct StatTile: View {
             Text(value.isEmpty ? L10n.Status.waiting : value)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(value.isEmpty ? .tertiary : .primary)
-                .contentTransition(isNumeric ? .numericText() : .opacity)
+                .contentTransition(isNumeric ? .countingNumbers : .opacity)
                 .adaptiveAnimation(value: value)
                 .monospacedDigit()
                 .lineLimit(1)

@@ -5,8 +5,8 @@ import SwiftUI
 
 /// Software gain slider, applies immediately, shared with the settings screen
 struct InputGainControl: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {

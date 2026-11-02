@@ -42,8 +42,8 @@ enum ProjectLinks {
 }
 
 struct AboutView: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppSettings.self) private var settings
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var settings: AppSettings
     @Environment(\.openURL) private var openURL
     @State private var copies = 0
     @State private var copied = false
@@ -105,7 +105,9 @@ struct AboutView: View {
                         color: copied ? .green : .gray
                     )
                 }
-                .sensoryFeedback(.success, trigger: copies)
+                .onChange(of: copies) { _ in
+                    Haptics.success()
+                }
                 .task(id: copies) {
                     guard copies > 0 else { return }
                     try? await Task.sleep(for: .seconds(2))
@@ -195,7 +197,6 @@ struct AboutView: View {
     private var diagnostics: String { Diagnostics.report(model: model) }
 
     private var updatesSection: some View {
-        @Bindable var settings = settings
         let updates = model.updates
         return Section {
             Button {
@@ -308,7 +309,7 @@ struct RowIcon: View {
         Image(systemName: systemImage)
             .font(.system(size: size * 0.5, weight: .semibold))
             .foregroundStyle(.white)
-            .contentTransition(.symbolEffect(.replace))
+            .symbolReplace()
             .frame(width: size, height: size)
             .background(color.gradient, in: RoundedRectangle(cornerRadius: size * 0.24, style: .continuous))
             .accessibilityHidden(true)

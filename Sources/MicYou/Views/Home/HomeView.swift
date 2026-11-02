@@ -7,7 +7,7 @@ import SwiftUI
 /// One screen that changes in place between idle and the live session
 /// The header and scroll view stay put so only the content and the control bar animate
 struct HomeView: View {
-    @Environment(AppModel.self) private var model
+    @EnvironmentObject private var model: AppModel
     @State private var showPicker = false
     @State private var showSettings = false
     @State private var showWelcome = false
@@ -55,10 +55,12 @@ struct HomeView: View {
         .animation(Motion.screen, value: model.isActive)
         .background(Color(.systemGroupedBackground))
         // Rotating changes the size, stereo capture follows the new orientation
-        .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { _ in
+        .onOrientationChange {
             model.orientationChanged()
         }
-        .sensoryFeedback(trigger: model.phase, Self.feedback)
+        .onChange(of: model.phase) { phase in
+            Self.playFeedback(for: phase)
+        }
         .overlay {
             if model.isDimmed {
                 DimOverlay()
@@ -80,7 +82,7 @@ struct HomeView: View {
             guard tourReady, !Task.isCancelled else { return }
             tourStep = Self.firstTourStep
         }
-        .onChange(of: model.isActive) { _, active in
+        .onChange(of: model.isActive) { active in
             // A shortcut or URL may start streaming while the picker, the welcome sheet or the tour is open
             if active {
                 showPicker = false
@@ -159,13 +161,14 @@ struct HomeView: View {
     }
 
     /// A tap when a stream starts or is stopped, a warning when the link drops and an error when it gives up
-    private static func feedback(from old: ConnectionPhase, to new: ConnectionPhase) -> SensoryFeedback? {
-        switch (old, new) {
-        case (_, .failed): .error
-        case (.streaming, .reconnecting): .warning
-        case (.idle, .connecting), (.failed, .connecting): .impact(weight: .medium)
-        case (.connecting, .idle), (.streaming, .idle), (.reconnecting, .idle): .impact(weight: .light)
-        default: nil
+    @MainActor
+    private static func playFeedback(for phase: ConnectionPhase) {
+        switch phase {
+        case .failed: Haptics.error()
+        case .reconnecting: Haptics.warning()
+        case .connecting: Haptics.impact(.medium)
+        case .idle: Haptics.impact(.light)
+        case .streaming: break
         }
     }
 }
@@ -241,7 +244,6 @@ struct FillingScrollView<Content: View>: View {
                     .frame(maxWidth: isWide ? HomeLayout.wideMaxWidth : HomeLayout.maxWidth, minHeight: proxy.size.height)
                     .frame(maxWidth: .infinity)
             }
-            .scrollBounceBehavior(.basedOnSize)
         }
     }
 }

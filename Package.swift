@@ -5,17 +5,11 @@ import PackageDescription
 
 // The linker records the deployment target as the SDK version unless told otherwise, on Linux
 // and on macOS alike under xtool, and iOS then runs the app in compatibility mode without
-// Liquid Glass. Defaults to the installed Darwin SDK (xtool sdk status), CI passes the SDK of
-// the Xcode it selected through MICYOU_IOS_SDK_VERSION
+// Liquid Glass. This fork pins the deployment target to iOS 16, the rest of the file keeps the
+// upstream layout otherwise
 let sdkVersion = Context.environment["MICYOU_IOS_SDK_VERSION"] ?? "27.1"
 let linkSDKVersion: [LinkerSetting] = [
-    .unsafeFlags(["-Xlinker", "-platform_version", "-Xlinker", "ios", "-Xlinker", "17.0", "-Xlinker", sdkVersion]),
-]
-
-// xtool links extensions with -e _NSExtensionMain, which leaves the SwiftUI @main widget
-// bundle unreferenced so it is dead stripped. Keep main alive, NSExtensionMain calls it
-let widgetEntryPoint: [LinkerSetting] = [
-    .unsafeFlags(["-Xlinker", "-u", "-Xlinker", "_main"]),
+    .unsafeFlags(["-Xlinker", "-platform_version", "-Xlinker", "ios", "-Xlinker", "16.0", "-Xlinker", sdkVersion]),
 ]
 
 // Release builds leave out local symbols and debug info, which take more than half of the
@@ -24,39 +18,22 @@ let stripSymbols: [LinkerSetting] = [
     .unsafeFlags(["-Xlinker", "-x", "-Xlinker", "-S"], .when(configuration: .release)),
 ]
 
-// Tools/appintents-metadata.py reads the conformances the compiler records in .swiftconstvalues.
-// Swift Build on Linux asks for them by itself, Xcode's leaves them out for package targets, so
-// the targets with intents ask explicitly, with the protocol list Swift Build uses. The list goes
-// to the frontend directly: the driver's -const-gather-protocols-list only exists from Swift 6.4,
-// Xcode 26 rejects it
-let constValues: [SwiftSetting] = [
-    .unsafeFlags([
-        "-emit-const-values",
-        "-Xfrontend", "-const-gather-protocols-file",
-        "-Xfrontend", "\(Context.packageDirectory)/Tools/appintents-protocols.json",
-    ]),
-]
-
 let package = Package(
     name: "MicYou",
     platforms: [
-        .iOS(.v17),
+        .iOS(.v16),
         .macOS(.v15),
     ],
     products: [
-        // xtool expects exactly one library product for the app, plus one per extension
+        // xtool expects exactly one library product for the app
         .library(name: "MicYou", targets: ["MicYou"]),
-        .library(name: "MicYouWidget", targets: ["MicYouWidget"]),
     ],
     dependencies: [
         .package(path: "Packages/MicYouProtocol"),
         .package(path: "Packages/MicYouCore"),
     ],
     targets: [
-        .target(
-            name: "MicYouShared",
-            swiftSettings: constValues
-        ),
+        .target(name: "MicYouShared"),
         .target(
             name: "MicYou",
             dependencies: [
@@ -64,14 +41,7 @@ let package = Package(
                 .product(name: "MicYouProtocol", package: "MicYouProtocol"),
                 .product(name: "MicYouCore", package: "MicYouCore"),
             ],
-            swiftSettings: constValues,
             linkerSettings: linkSDKVersion + stripSymbols
-        ),
-        .target(
-            name: "MicYouWidget",
-            dependencies: ["MicYouShared"],
-            swiftSettings: constValues,
-            linkerSettings: linkSDKVersion + widgetEntryPoint + stripSymbols
         ),
     ]
 )
