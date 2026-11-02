@@ -43,9 +43,6 @@ extension ContentTransition {
     static var magicReplace: ContentTransition {
         // Before iOS 17 there is no symbol replace at all, the symbol only fades
         if #available(iOS 17, *) {
-            if #available(iOS 18, *) {
-                return .symbolEffect(.replace.magic(fallback: .replace))
-            }
             return .symbolEffect(.replace)
         }
         return .opacity
@@ -90,14 +87,10 @@ struct SurfaceButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
-        if #available(iOS 26, *) {
-            configuration.label
-        } else {
-            configuration.label
-                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
-                .opacity(configuration.isPressed ? 0.8 : 1)
-                .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
-        }
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: configuration.isPressed)
     }
 }
 
