@@ -1,8 +1,9 @@
 name: iOS 16 IPA
 
 # Builds an unsigned IPA with an iOS 16 deployment target, for a device that cannot run the
-# upstream release (iOS 17 and later). macos-14 is the only image that gets a runner here,
-# it ships Xcode 16.2 with the iOS 18.2 SDK and Swift 6.0, which is what xtool 1.16 expects
+# upstream release (iOS 17 and later). macos-14 is the only image that gets a runner here.
+# xtool needs Swift 6.1 for the implicit Darwin Swift SDK, the image has 6.0, so a 6.2
+# toolchain is installed and selected through TOOLCHAINS
 on:
   workflow_dispatch:
 
@@ -16,22 +17,29 @@ concurrency:
 jobs:
   ipa:
     runs-on: macos-14
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
+
+      - name: Install the Swift 6.2 toolchain
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/swift.pkg" \
+            https://download.swift.org/swift-6.2.2-release/xcode/swift-6.2.2-RELEASE/swift-6.2.2-RELEASE-osx.pkg
+          sudo installer -pkg "$RUNNER_TEMP/swift.pkg" -target /
+          echo "TOOLCHAINS=swift" >> "$GITHUB_ENV"
+          export TOOLCHAINS=swift
+          swift --version
 
       - uses: ./.github/actions/setup-xtool
         with:
           min-sdk-major: "18"
-          xtool-version: "1.16.1"
-          xtool-sha256: "81c129fca7a5cebe3e0ab4988722dfba94f2053497ee9dd61f113af422e23086"
 
       - name: Make the scripts executable
         run: chmod +x Tools/*.sh
 
       - name: Build IPA
         run: bash Tools/build-ipa.sh
-        timeout-minutes: 30
+        timeout-minutes: 40
 
       - name: Verify
         run: bash Tools/verify-ipa16.sh
