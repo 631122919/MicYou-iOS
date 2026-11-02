@@ -10,7 +10,7 @@ struct AppIconView: View {
         icon
             .frame(width: size, height: size)
             .clipShape(shape)
-            .overlay { shape.strokeBorder(.separator, lineWidth: 0.5) }
+            .overlay { shape.strokeBorder(.separatorStyle, lineWidth: 0.5) }
             .shadow(color: .black.opacity(0.12), radius: size / 11, y: size / 22)
             .accessibilityHidden(true)
     }
