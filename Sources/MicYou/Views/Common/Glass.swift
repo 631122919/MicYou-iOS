@@ -9,23 +9,13 @@ extension ShapeStyle where Self == Color {
 
 extension View {
     /// Liquid Glass on iOS 26, a bordered button before
-    @ViewBuilder
     func glassButtonStyle() -> some View {
-        if #available(iOS 26, *) {
-            buttonStyle(.glass)
-        } else {
-            buttonStyle(.bordered)
-        }
+        buttonStyle(.bordered)
     }
 
     /// Tinted Liquid Glass on iOS 26, a filled button before
-    @ViewBuilder
     func glassProminentButtonStyle() -> some View {
-        if #available(iOS 26, *) {
-            buttonStyle(.glassProminent)
-        } else {
-            buttonStyle(.borderedProminent)
-        }
+        buttonStyle(.borderedProminent)
     }
 }
 
@@ -50,10 +40,6 @@ private struct GlassSurface<S: Shape>: ViewModifier {
     let fallback: AnyShapeStyle
 
     func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content.glassEffect(.regular.tint(tint).interactive(interactive), in: shape)
-        } else {
-            content.background(tint.map { AnyShapeStyle($0) } ?? fallback, in: shape)
-        }
+        content.background(tint.map { AnyShapeStyle($0) } ?? fallback, in: shape)
     }
 }
