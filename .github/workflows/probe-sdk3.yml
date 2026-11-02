@@ -1,0 +1,22 @@
+name: probe-sdk3
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-xtool
+        with:
+          min-sdk-major: "18"
+      - name: Build
+        run: |
+          set -x
+          mkdir -p ~/Library/org.swift.swiftpm/swift-sdks
+          mkdir -p ~/.swiftpm/swift-sdks
+          ls -la ~/Library/org.swift.swiftpm/ 2>&1 | head
+          xtool dev build -c release --ipa
+          ls -la xtool
