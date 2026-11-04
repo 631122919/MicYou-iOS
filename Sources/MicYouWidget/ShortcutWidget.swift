@@ -69,16 +69,15 @@ private struct ShortcutWidgetView: View {
                 .widgetURL(DeepLink.toggle.url)
         case .systemMedium:
             // Title on top, the three links fill the height that is left
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 Title()
+                Spacer(minLength: 0)
                 HStack(spacing: 10) {
                     ActionLink(link: .connect, title: L10n.Common.connect, symbol: "mic.fill", tint: .green)
                     ActionLink(link: .toggleMute, title: L10n.Common.mute, symbol: "mic.slash.fill", tint: .orange)
                     ActionLink(link: .disconnect, title: L10n.Common.disconnect, symbol: "xmark", tint: .red)
                 }
-                .frame(maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         default:
             VStack(alignment: .leading, spacing: 6) {
                 CircleSymbol(symbol: "mic.fill", tint: .green, size: 38)
@@ -93,7 +92,6 @@ private struct ShortcutWidgetView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .widgetURL(DeepLink.toggle.url)
         }
     }
