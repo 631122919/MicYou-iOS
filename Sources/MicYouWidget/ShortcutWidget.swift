@@ -92,6 +92,7 @@ private struct ShortcutWidgetView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .widgetURL(DeepLink.toggle.url)
         }
     }
