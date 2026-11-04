@@ -7,5 +7,8 @@ import WidgetKit
 struct MicYouWidgetBundle: WidgetBundle {
     var body: some Widget {
         ShortcutWidget()
+        if #available(iOS 16.1, *) {
+            StreamLiveActivity()
+        }
     }
 }
