@@ -89,6 +89,12 @@ struct SettingsView: View {
                         Text(L10n.Settings.pushToTalkDetail)
                     }
                     Toggle(L10n.Settings.keepScreenOn, isOn: $settings.keepScreenOn)
+                    if #available(iOS 16.1, *) {
+                        Toggle(isOn: $settings.liveActivity) {
+                            Text(L10n.Settings.liveActivity)
+                            Text(L10n.Settings.liveActivityDetail)
+                        }
+                    }
                 }
 
                 Section {
