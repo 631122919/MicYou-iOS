@@ -49,6 +49,8 @@
 	<array>
 		<string>_micyou._tcp</string>
 	</array>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
