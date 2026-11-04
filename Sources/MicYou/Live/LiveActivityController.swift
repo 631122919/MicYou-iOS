@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import ActivityKit
 import Foundation
 import MicYouShared
 import os
@@ -14,7 +15,7 @@ final class LiveActivityController {
     /// Server of the shown or requested activity
     private var serverName: String?
     /// The state the last update asked for, replayed when the request lands late
-    private var latest: StreamActivityAttributes.ContentState?
+    private var latest: Any?
     /// What the activity shows, so an update that changes nothing is dropped
     private var lastKey: String?
     private var request: Task<Void, Never>?
@@ -73,7 +74,7 @@ final class LiveActivityController {
             // Ended or replaced while waiting
             guard !Task.isCancelled else { return Self.dismiss(box.value) }
             activity = box.value
-            if let latest, Self.key(for: latest) != requested {
+            if let latest = latest as? StreamActivityAttributes.ContentState, Self.key(for: latest) != requested {
                 Self.push(latest, to: box.value)
             }
         case .failure(let error):
