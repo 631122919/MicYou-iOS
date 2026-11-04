@@ -17,3 +17,11 @@ resources:
 - Support/Localization/en.lproj
 - Support/Localization/zh-Hans.lproj
 - Support/Localization/zh-Hant.lproj
+extensions:
+- product: MicYouWidget
+  infoPath: Support/Widget-Info.plist
+  resources:
+  - Resources/Privacy/MicYouWidget/PrivacyInfo.xcprivacy
+  - Support/Localization/en.lproj
+  - Support/Localization/zh-Hans.lproj
+  - Support/Localization/zh-Hant.lproj
