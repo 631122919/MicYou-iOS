@@ -2,6 +2,8 @@
 // Home Screen and Lock Screen widget, iOS 16 style: every control is a link that opens the app,
 // because widgets can only run intents from iOS 17. The widget shares no storage with the app,
 // so it shows no connection state and never needs a new timeline
+// Text is capped at the Large content size category and every line scales down, a widget has a
+// fixed height and larger text would push the layout out of its card
 
 import MicYouShared
 import SwiftUI
@@ -11,6 +13,7 @@ struct ShortcutWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "com.chouchiu.micyou.shortcuts", provider: Provider()) { _ in
             ShortcutWidgetView()
+                .dynamicTypeSize(.xSmall ... .large)
         }
         .configurationDisplayName(L10n.App.name)
         .description(String(localized: L10n.Widget.description))
@@ -51,10 +54,13 @@ private struct ShortcutWidgetView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Label(L10n.App.name, systemImage: "mic.fill")
                     .font(.headline)
+                    .lineLimit(1)
                     .widgetAccentable()
                 Text(L10n.Widget.hint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .widgetURL(DeepLink.toggle.url)
@@ -62,11 +68,9 @@ private struct ShortcutWidgetView: View {
             Label(L10n.App.name, systemImage: "mic.fill")
                 .widgetURL(DeepLink.toggle.url)
         case .systemMedium:
-            // Title at the top, the three links centered in the space below it
-            VStack(alignment: .leading, spacing: 8) {
-                Label(L10n.App.name, systemImage: "mic.fill")
-                    .font(.headline)
-                    .widgetAccentable()
+            // Title on top, the three links fill the height that is left
+            VStack(alignment: .leading, spacing: 12) {
+                Title()
                 HStack(spacing: 10) {
                     ActionLink(link: .connect, title: L10n.Common.connect, symbol: "mic.fill", tint: .green)
                     ActionLink(link: .toggleMute, title: L10n.Common.mute, symbol: "mic.slash.fill", tint: .orange)
@@ -74,19 +78,34 @@ private struct ShortcutWidgetView: View {
                 }
                 .frame(maxHeight: .infinity)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         default:
-            VStack(alignment: .leading) {
-                CircleSymbol(symbol: "mic.fill", tint: .green, size: 44)
-                Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 6) {
+                CircleSymbol(symbol: "mic.fill", tint: .green, size: 38)
+                Spacer(minLength: 4)
                 Text(L10n.App.name)
                     .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Text(L10n.Widget.hint)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .widgetURL(DeepLink.toggle.url)
         }
+    }
+}
+
+private struct Title: View {
+    var body: some View {
+        Label(L10n.App.name, systemImage: "mic.fill")
+            .font(.headline)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .widgetAccentable()
     }
 }
 
@@ -100,12 +119,12 @@ private struct ActionLink: View {
     var body: some View {
         Link(destination: link.url) {
             VStack(spacing: 6) {
-                CircleSymbol(symbol: symbol, tint: tint, size: 40)
+                CircleSymbol(symbol: symbol, tint: tint, size: 38)
                 Text(title)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.6)
             }
             .frame(maxWidth: .infinity)
         }
