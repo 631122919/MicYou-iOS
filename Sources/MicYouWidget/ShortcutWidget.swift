@@ -68,7 +68,9 @@ private struct ShortcutWidgetView: View {
             Label(L10n.App.name, systemImage: "mic.fill")
                 .widgetURL(DeepLink.toggle.url)
         case .systemMedium:
-            // Title on top, the three links fill the height that is left
+            // Title on top, the three links fill the height that is left.
+            // iOS 16 has no containerBackground and applies no content margins of its own,
+            // so the 16pt inset the iOS 17 version gets from the system is spelled out here
             VStack(alignment: .leading, spacing: 10) {
                 Title()
                 Spacer(minLength: 0)
@@ -78,6 +80,8 @@ private struct ShortcutWidgetView: View {
                     ActionLink(link: .disconnect, title: L10n.Common.disconnect, symbol: "xmark", tint: .red)
                 }
             }
+            .padding(16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         default:
             VStack(alignment: .leading, spacing: 6) {
                 CircleSymbol(symbol: "mic.fill", tint: .green, size: 38)
@@ -92,7 +96,8 @@ private struct ShortcutWidgetView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .widgetURL(DeepLink.toggle.url)
         }
     }
