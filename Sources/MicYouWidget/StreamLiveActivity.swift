@@ -17,7 +17,6 @@ struct StreamLiveActivity: Widget {
             LockScreenView(serverName: context.attributes.serverName, state: context.state)
                 .padding(16)
                 .activityBackgroundTint(nil)
-                .widgetURL(DeepLink.toggle.url)
         } dynamicIsland: { context in
             let state = context.state
             return DynamicIsland {
