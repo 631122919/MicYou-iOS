@@ -83,6 +83,8 @@ final class AppModel: ObservableObject {
     private let log = Logger.micyou("model")
     private let capture = AudioCapture()
     private let sink = SessionSink()
+    /// Lock Screen and Dynamic Island activity, inert before iOS 16.1
+    private let liveActivity = LiveActivityController()
     private var session: StreamSession?
     private var sessionToken: UUID?
     private var currentConfig: StreamConfig?
@@ -104,6 +106,8 @@ final class AppModel: ObservableObject {
 
     init() {
         selection = settings.usbSelected ? .usb : settings.lastServiceName.map { .discovered(name: $0) } ?? .manual
+        // Activities left over from a run that crashed or was killed
+        if #available(iOS 16.1, *) { liveActivity.endStale() }
         // Before Observation a view only follows the object it observes, so the parts of the model
         // forward their changes and every view watching the model sees the browser, settings and rest
         let changes = objectWillChange
@@ -118,6 +122,10 @@ final class AppModel: ObservableObject {
                 // Only once a picker has asked, listing inputs sets the session category
                 if !self.inputOptions.isEmpty { self.refreshInputOptions() }
             }
+        }
+        // Swiping the app away kills the process, the system keeps the activity unless it is ended first
+        NotificationCenter.default.addObserver(forName: UIApplication.willTerminateNotification, object: nil, queue: .main) { _ in
+            if #available(iOS 16.1, *) { LiveActivityController.endAllBeforeExit() }
         }
         network.onChange = { [weak self] status in self?.networkChanged(status) }
     }
@@ -588,5 +596,37 @@ final class AppModel: ObservableObject {
         UIApplication.shared.isIdleTimerDisabled = (settings.keepScreenOn || isDimmed) && isActive
         refreshQuickActions()
         audioInput = isActive ? AudioInputInfo.current() : nil
+        if #available(iOS 16.1, *) { updateLiveActivity() }
+    }
+
+    /// Lock Screen banner and Dynamic Island, nothing to do on iOS 16.0
+    @available(iOS 16.1, *)
+    private func updateLiveActivity() {
+        guard settings.liveActivity, isActive, let name = connectedName else {
+            liveActivity.end()
+            return
+        }
+        let activityPhase: StreamActivityAttributes.Phase
+        var attempt = 0
+        switch phase {
+        case .streaming: activityPhase = captureStatus == .running ? .streaming : .interrupted
+        case .reconnecting(let n): activityPhase = .reconnecting; attempt = n
+        default: activityPhase = .connecting
+        }
+        var detail = ""
+        if let format = activeFormat, let config = currentConfig {
+            detail = StreamText.activityDetail(format, opusBitrate: config.opusBitrate, transport: config.transport)
+        }
+        let input = audioInput
+        liveActivity.update(serverName: name, state: .init(
+            phase: activityPhase,
+            isMuted: isMuted,
+            startedAt: streamingSince ?? .now,
+            detail: detail,
+            input: input?.name ?? "",
+            inputSymbol: input?.symbol ?? "mic.fill",
+            attempt: attempt,
+            maxAttempts: Self.maxReconnectAttempts
+        ))
     }
 }
